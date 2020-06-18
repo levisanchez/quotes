@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import javax.crypto.spec.PSource;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -58,6 +57,7 @@ public abstract class QuotesDatabase extends RoomDatabase {
         Room.databaseBuilder(context, QuotesDatabase.class, DB_NAME)
             .addCallback(new QuotesCallback())
             .build();
+
   }
 
   private static class QuotesCallback extends Callback {
@@ -72,46 +72,47 @@ public abstract class QuotesDatabase extends RoomDatabase {
         throw new RuntimeException(e);
       }
     }
-    private Map<Source, List<Quote>> parseFile(int resourceId) throws IOException {
-    try(
-        InputStream input = QuotesDatabase.context.getResources().openRawResource(resourceId);
-        Reader reader = new InputStreamReader(input);
-        CSVParser parser = CSVParser.parse(
-            reader, CSVFormat.EXCEL.withIgnoreSurroundingSpaces().withIgnoreEmptyLines());
-        ) {
 
-      Map<Source, List<Quote>> map = new HashMap<>();
-      for (CSVRecord record : parser) {
-        Source source = null;
-        String sourceName = record.get(0).trim();
-        if (!sourceName.isEmpty()) {
-          source = new Source();
-          source.setName(sourceName);
+    private Map<Source, List<Quote>> parseFile(int resourceId) throws IOException {
+      try (
+          InputStream input = QuotesDatabase.context.getResources().openRawResource(resourceId);
+          Reader reader = new InputStreamReader(input);
+          CSVParser parser = CSVParser.parse(
+              reader, CSVFormat.EXCEL.withIgnoreSurroundingSpaces().withIgnoreEmptyLines());
+      ) {
+        Map<Source, List<Quote>> map = new HashMap<>();
+        for (CSVRecord record : parser) {
+          Source source = null;
+          String sourceName = record.get(0).trim();
+          if (!sourceName.isEmpty()) {
+            source = new Source();
+            source.setName(sourceName);
+          }
+          List<Quote> quotes = map.computeIfAbsent(source, (s) -> new LinkedList<>());
+          Quote quote = new Quote();
+          quote.setText(record.get(1).trim());
+          quotes.add(quote);
         }
-        List<Quote> quotes = map.computeIfAbsent(source, (s) -> new LinkedList<>());
-        Quote quote = new Quote();
-        quote.setText(record.get(1).trim());
-        quotes.add(quote);
+        return map;
       }
-      return map;
-    }
     }
 
     @SuppressLint("CheckResult")
-    private void persist(Map<Source, List<Quote>> map){
+    private void persist(Map<Source, List<Quote>> map) {
       QuotesDatabase database = QuotesDatabase.getInstance();
       SourceDao sourceDao = database.getSourceDao();
       QuoteDao quoteDao = database.getQuoteDao();
       List<Source> sources = new LinkedList<>(map.keySet());
       List<Quote> unattributed = map.getOrDefault(null, Collections.emptyList());
       sources.remove(null);
+      //noinspection ResultOfMethodCallIgnored
       sourceDao.insert(sources)
           .subscribeOn(Schedulers.io())
           .flatMap((sourceIds) -> {
             List<Quote> quotes = new LinkedList<>();
             Iterator<Long> idIterator = sourceIds.iterator();
             Iterator<Source> sourceIterator = sources.iterator();
-            while (idIterator.hasNext()){
+            while (idIterator.hasNext()) {
               long sourceId = idIterator.next();
               for (Quote quote : map.getOrDefault(sourceIterator.next(), Collections.emptyList())) {
                 quote.setSourceId(sourceId);
@@ -120,14 +121,13 @@ public abstract class QuotesDatabase extends RoomDatabase {
             }
             quotes.addAll(unattributed);
             return quoteDao.insert(quotes);
-
           })
           .subscribe(
               (quoteIds) -> {},
               (throwable) -> {throw new RuntimeException(throwable);}
-
           );
-
     }
+
   }
+
 }
