@@ -5,6 +5,7 @@ import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 import androidx.room.Update;
 import edu.cnm.deepdive.quotes.model.entity.Quote;
 import edu.cnm.deepdive.quotes.model.pojo.QuoteWithSource;
@@ -32,4 +33,8 @@ public interface QuoteDao {
 
   @Query("SELECT * FROM Quote WHERE source_id = :sourceId")
   Single<List<Quote>> selectBySourceId(Long sourceId);
+
+  @Transaction
+  @Query("SELECT * FROM Quote WHERE quote_id = :quoteId")
+  Single<QuoteWithSource> selectById(long quoteId);
 }
