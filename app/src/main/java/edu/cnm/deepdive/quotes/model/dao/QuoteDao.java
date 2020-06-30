@@ -1,5 +1,6 @@
 package edu.cnm.deepdive.quotes.model.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -29,7 +30,7 @@ public interface QuoteDao {
   Single<Integer> delete(Quote...quotes);
 
   @Query("SELECT * FROM Quote ORDER BY text")
-  Single<List<QuoteWithSource>> selectAll();
+  LiveData<List<QuoteWithSource>> selectAll();
 
   @Query("SELECT * FROM Quote WHERE source_id = :sourceId")
   Single<List<Quote>> selectBySourceId(Long sourceId);
