@@ -5,6 +5,7 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
 import androidx.room.PrimaryKey;
+import java.util.Date;
 
 @Entity(
     foreignKeys = @ForeignKey(
@@ -19,6 +20,16 @@ public class Quote {
   @PrimaryKey(autoGenerate = true)
   @ColumnInfo(name = "quote_id")
   private long id;
+
+  private Date created = new Date();
+
+  public Date getCreated() {
+    return created;
+  }
+
+  public void setCreated(Date created) {
+    this.created = created;
+  }
 
   @ColumnInfo(name = "source_id", index = true)
   private Long sourceId;
